@@ -1,4 +1,5 @@
 const accountModel = require('../models/account.model');
+const transactionModel = require('../models/transaction.model');
 const userModel = require('../models/user.model');
 const usersController = require('./users.controller');
 
@@ -83,101 +84,145 @@ const getAccountsByActiveStatus = async(req, res)=> {
         return res.send(e);
     }
 }
-//  const createAccount = (req, res) => {
 
-//      let id = req.params.id;
-//      const {name, phoneNumber, email, isActive} = req.body;
+const deleteAccount = async(req, res)=> {
+    try{
 
+        //find the account, get the owner id, find the owner, 
+        //pull out this accound from the owner's accounts array
+        const account = await accountModel.find({_id: req.params.id});
 
+        const ownerId = account[0].ownerIdMongo[0];
 
-//      const user = new userModel({
-//          id: id,
-//          name: name,
-//          phoneNumber: phoneNumber,
-//          email: email,
-//         isActive: isActive
-//     });
+        const owner = await userModel.findById(ownerId);
 
-//      user.save((err) => {
-//          if (err) return res.status(400).send(err);
-//          return res.send({"success": user});
-//      });
-//  }
+        const ownerAccounts = owner.accounts;
 
-// const getAllUsers = async(req, res) =>{
-//     try {
-//         const users = await userModel.find({});
-//         return res.send(users);
-//     }
-//     catch (e) {
-//         console.log(e);
-//         return res.status(400).json(e);
-//     }
-//     // userModel.find({})
-//     // .then(users=> {
-//     //     return res.send(users)
-//     // })
-//     // .catch(e=> {
-//     //     return res.send(e)
-//     // })
-// } 
+        const deletedAccountIndex = ownerAccounts.indexOf(req.params.id);
 
-// const getUsersByActiveStatus = async(req, res)=> {
-//     try {
-//         const users = await userModel.find({isActive : req.params.isActive});
-//         return res.send(users);
+        await owner.accounts.splice(deletedAccountIndex, 1);
 
-//     }
-//     catch (e) {
-//         return res.send(e);
-//     }
-// }
+        owner.save();
 
-// const getUserById = async(req, res)=> {
-//     try {
-//         const user = await userModel.find({_id: req.params.id});
-    
-//         res.send(user);
-//     }
-//     catch(e) {
-//         return res.status(400).send("Error: could not find user");
-//     }
-// }
+        const deletedAccount = await accountModel.findByIdAndDelete(req.params.id);
 
+        return res.send(deletedAccount);
+    }
+    catch(e) {
+        return res.status(400).send(e);
+    }
+}
 
+const changeAccountMoney = async(req, res)=> {
+    try {
+        const id = req.params.id;
+        const amount = req.body.cash;
 
-// const deleteUser = async(req, res)=> {
-//     try{
-//         const user = await userModel.findByIdAndDelete(req.params.id);
-//         if (!user) {
-//             return res.status(404).send('Could not find user');
-//         }
-//         return res.send(user);
-//     }
-//     catch(e) {
-//         return res.status(400).send(e);
-//     }
-// }
+        const account = await accountModel.findById(id);
 
-// const editUser = async(req, res)=> {
-//     try {
-//         const user = await userModel.findByIdAndUpdate(req.params.id, req.body, {new: true, runValidators: true});
-//         console.log(req.body);
-//         console.log(user);
-//         if(!user) {
-//             return res.status(404).send('user not found');
-//         }
-//         return res.send(user);
+        const originalCash = account.cash;
+        const negativeCredit = (-1) * account.credit;
+
+        const newCash = originalCash + amount;
+
+        if(newCash < negativeCredit) {
+            return res.status(400).send("Error: debt cannot acceed credit");
+        }
+
+        account.cash = newCash;
+        account.save();
+
+        return res.send(account);
+    }
+    catch(e) {
+        return res.status(400).send(e);
+    }
+}
+
+const updateCredit = async(req, res)=> {
+    try {
+        const account = await accountModel.findById(req.params.id);
+
+        const originalCredit = account.credit;
+
+        const newCredit = originalCredit+req.body.credit;
+
+       const negativeCredit = (-1) * newCredit;
+
+        const cash = account.cash;
+
+        if(cash < negativeCredit) {
+
+             return res.status(400).send("Error: debt cannot acceed credit");
+        }
         
-//     }
-//     catch(e) {
-//         return res.status(400).send(e);
-//     }
-// }
+        account.credit = newCredit;
+        await account.save();
+
+        return res.send(account);
+    }
+    catch(e) {
+        return res.status(400).send(e);
+    }
+}
+
+const transact = async(req, res) => {
+    try{
+        const fromId = req.params.fromId;
+        const toId = req.params.toId;
+    
+        const from = await accountModel.findById(fromId);
+        const to = await accountModel.findById(toId);
+    
+        if(from == null || to == null) {
+            return res.status(404).send("account not found");
+        }
+
+        const cash = req.body.cash;
+
+        if(cash < 0) {
+            return res.status(400).send("Error: negative sum deposit");
+        }
+
+        const originalCash = from.cash;
+        const negativeCredit = (-1) * from.credit;
+
+        const newCash = originalCash - cash;
+
+        if(newCash < negativeCredit) {
+            return res.status(400).send("Error: debt cannot acceed credit");
+        }
+
+        const newTransaction = new transactionModel({
+            fromId: fromId,
+            toId: toId,
+            cash: cash
+        });
+
+        newTransaction.save();
+
+        from.cash = newCash;
+        from.transactions.push(newTransaction._id);
+        from.save();
+        
+        to.cash = to.cash + cash;
+        to.transactions.push(newTransaction._id);
+        to.save();
+
+        return res.send(newTransaction);        
+    }
+    catch(e) {
+        return res.status(400).send({Error: e})
+    }
+}
 
 module.exports = {
    createAccountAndAddToUser, createAccountAndAddToUser,
    getAllAccounts: getAllAccounts,
    getAccountById: getAccountById,
    getAccountsByActiveStatus: getAccountsByActiveStatus,
+   deleteAccount: deleteAccount,
+   changeAccountMoney: changeAccountMoney,
+   updateCredit: updateCredit,
+   transact: transact
 }

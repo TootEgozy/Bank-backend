@@ -1,9 +1,7 @@
 const express = require('../node_modules/express');
 const router = express.Router();
 const userController = require('../controllers/users.controller');
-const accountController = require('../controllers/accounts.controller');
-const userModal = require('../models/user.model');
-const accountModal = require('../models/account.model');
+const accountsController = require('../controllers/accounts.controller');
 
 router.get('/', (req, res)=> {
     res.send("in homepage");
@@ -44,39 +42,39 @@ router.put('/users/editUserAccounts/remove/:id', (req, res)=> {
 
 //Accounts
 router.get('/accounts', (req, res)=> {
-    accountController.getAllAccounts(req, res);
+    accountsController.getAllAccounts(req, res);
 })
 
 router.get('/accounts/active/:isActive', (req, res)=> {
-    accountController.getAccountsByActiveStatus(req, res);
+    accountsController.getAccountsByActiveStatus(req, res);
 })
 
 router.get('/accounts/:id', (req, res)=> {
-    accountController.getAccountById(req, res);
+    accountsController.getAccountById(req, res);
 })
 
 router.delete('/accounts/:id', (req, res)=> {
-    res.send('delete account by the account id');
+   accountsController.deleteAccount(req, res);
 })
 
 router.post('/accounts/createAccount/:id', (req, res)=> {
-   accountController.createAccountAndAddToUser(req, res);
+   accountsController.createAccountAndAddToUser(req, res);
 })
 
 router.put('/accounts/withdraw/:id', (req, res)=> {
-    res.send('withdraw money from an account by id (sum in body)');
+    accountsController.changeAccountMoney(req, res);
 })
 
 router.put('/accounts/deposit/:id', (req, res)=> {
-    res.send('deposit money for an account by id (sum in body)');
+    accountsController.changeAccountMoney(req, res);
 })
 
 router.put('/accounts/updateCredit/:id', (req, res)=> {
-    res.send('update the credit for an account by id. get new credit from req.body');
+    accountsController.updateCredit(req, res);
 })
 
 router.put('/accounts/transact/:fromId/:toId', (req, res)=> {
-    res.send('transaction of cash between two accounts');
+    accountsController.transact(req, res);
 })
 
 

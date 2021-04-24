@@ -9,7 +9,7 @@ const accountSchema = mongoose.Schema({
         default: [],
         unique: false
     }, 
-    transActions: {
+    transactions: {
         type: Array,
         default: [],
         unique: false
