@@ -78,31 +78,4 @@ router.put('/accounts/transact/:fromId/:toId', (req, res)=> {
 })
 
 
-
-
-
-
-
-
-// router.delete('/deleteProduct', (req, res)=> {
-//     productController.deleteProductByProp(req, res);
-// })
-
-// router.get('/getActive', (req, res)=> {
-//     productController.getAllActives(req,res);
-// })
-
-// router.get('/getByPriceRange', (req, res)=> {
-//     productController.getPriceRange(req, res);
-// })
-
-// router.put('/updateProduct/:id', (req, res)=> {
-//     productController.updateProduct(req, res);
-// })
-
-// router.delete('/deleteProduct/:id', (req, res)=> {
-//     productController.deleteProduct(req, res);
-// })
-
-
 module.exports = router;
